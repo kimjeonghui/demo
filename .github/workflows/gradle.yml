@@ -46,20 +46,6 @@ jobs:
         touch ./src/main/resources/application.properties
       shell: bash
       
-    - name: copy Application.properties
-      run:
-        echo "${{ secrets.PROPERTIES }}" > ./src/main/resources/application.properties
-      shell: bash
-      
-
-	# 5. 빌드 결과 파일(ROOT.war) 이동
-    - name: move build files
-      run: mv ./build/libs/ROOT.war ./
-      shell: bash
-
-	# 6. 빌드 결과와 appspec.yml, 관련 빌드 스크립트 .zip으로 압축
-    - name: zip build files
-      run: zip -r $GITHUB_SHA.zip ./appspec.yml ./ROOT.war ./scripts
 
 	# 7. AWS 인증과정
     - name: Configure AWS credentials
@@ -75,11 +61,10 @@ jobs:
       run: aws s3 cp --region us-east-1 ./demo.zip s3://$S3_BUCKET_NAME/demo.zip
       
       
-    # 9. CodeDeploy 실행
-    - name: deploy
-      run: |
-        aws deploy create-deployment \
-        --deployment-config-name CodeDeployDefault.AllAtOnce \
-        --application-name ${{ env.CODE_DEPLOY_APP_NAME }} \
-        --deployment-group-name ${{ env.CODE_DEPLOY_GROUP_NAME }} \
-        --s3-location bucket=$S3_BUCKET_NAME,bundleType=zip,key=$GITHUB_SHA.zip
+ # CodeDeploy에게 배포 명령을 내립니다.
+    - name: Code Deploy
+      run: >
+        aws deploy create-deployment --application-name jeonghui
+        --deployment-config-name CodeDeployDefault.AllAtOnce
+        --deployment-group-name code-deploy-group
+        --s3-location bucket=$S3_BUCKET_NAME,bundleType=zip,key=demo.zip
