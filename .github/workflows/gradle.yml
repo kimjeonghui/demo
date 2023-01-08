@@ -39,21 +39,14 @@ jobs:
       uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
       with:
         arguments: build
-        
-    # 2. application.properties를 프로젝트에 포함
-    - name: add Application.properties
-      run:
-        touch ./src/main/resources/application.properties
-      shell: bash
-      
-
+	
 	# 7. AWS 인증과정
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-northeast-2
+        aws-region: us-east-1
         
 
     # 압축한 프로젝트를 S3로 전송합니다.
