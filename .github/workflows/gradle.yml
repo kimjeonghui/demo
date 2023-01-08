@@ -51,11 +51,6 @@ jobs:
         echo "${{ secrets.PROPERTIES }}" > ./src/main/resources/application.properties
       shell: bash
       
-      
-     # 4. 빌드
-    - name: Build with Gradle
-      run: ./gradlew build
-      shell: bash
 
 	# 5. 빌드 결과 파일(ROOT.war) 이동
     - name: move build files
