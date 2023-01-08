@@ -18,6 +18,8 @@ permissions:
   
 env:
   S3_BUCKET_NAME: jeonghui
+  CODE_DEPLOY_APP_NAME: jeonghui
+  CODE_DEPLOY_GROUP_NAME: code-deploy-group
 
 jobs:
   build:
@@ -38,7 +40,51 @@ jobs:
       with:
         arguments: build
         
+    # 2. application.properties를 프로젝트에 포함
+    - name: add Application.properties
+      run:
+        touch ./src/main/resources/application.properties
+      shell: bash
+      
+    - name: copy Application.properties
+      run:
+        echo "${{ secrets.PROPERTIES }}" > ./src/main/resources/application.properties
+      shell: bash
+      
+      
+     # 4. 빌드
+    - name: Build with Gradle
+      run: ./gradlew build
+      shell: bash
+
+	# 5. 빌드 결과 파일(ROOT.war) 이동
+    - name: move build files
+      run: mv ./build/libs/ROOT.war ./
+      shell: bash
+
+	# 6. 빌드 결과와 appspec.yml, 관련 빌드 스크립트 .zip으로 압축
+    - name: zip build files
+      run: zip -r $GITHUB_SHA.zip ./appspec.yml ./ROOT.war ./scripts
+
+	# 7. AWS 인증과정
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-2
+        
 
     # 압축한 프로젝트를 S3로 전송합니다.
     - name: Upload to S3
       run: aws s3 cp --region us-east-1 ./demo.zip s3://$S3_BUCKET_NAME/demo.zip
+      
+      
+    # 9. CodeDeploy 실행
+    - name: deploy
+      run: |
+        aws deploy create-deployment \
+        --deployment-config-name CodeDeployDefault.AllAtOnce \
+        --application-name ${{ env.CODE_DEPLOY_APP_NAME }} \
+        --deployment-group-name ${{ env.CODE_DEPLOY_GROUP_NAME }} \
+        --s3-location bucket=$S3_BUCKET_NAME,bundleType=zip,key=$GITHUB_SHA.zip
